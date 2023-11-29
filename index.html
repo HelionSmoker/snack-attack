@@ -1,11 +1,179 @@
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" type="image/x-icon" href="favicon.png">
     <title>Snake Game</title>
 </head>
+<style>
+    :root {
+        /** CSS DARK THEME PRIMARY COLORS */
+        --color-primary-100: #2bf02e;
+        --color-primary-200: #5af34e;
+        --color-primary-300: #78f568;
+        --color-primary-400: #90f77f;
+        --color-primary-500: #a5f995;
+        --color-primary-600: #b9fbab;
+
+        /** CSS DARK THEME MIXED SURFACE COLORS */
+        --color-surface-mixed-100: #1a2518;
+        --color-surface-mixed-200: #2f3a2d;
+        --color-surface-mixed-300: #464f44;
+        --color-surface-mixed-400: #5e665c;
+        --color-surface-mixed-500: #767e75;
+        --color-surface-mixed-600: #90968f;
+    }
+
+    * {
+        margin: 0;
+        padding: 0;
+        color: white;
+    }
+
+    body {
+        background-color: var(--color-surface-mixed-100);
+    }
+
+    #board-container {
+        display: flex;
+        justify-content: center;
+        padding: 50px 20px 40px;
+    }
+
+    #board {
+        min-width: 400px;
+        max-width: 400px;
+        min-height: 200px;
+        height: 100%;
+    }
+
+    #score-container {
+        display: flex;
+        justify-content: center;
+    }
+
+    h1 {
+        font-size: 32px;
+        font-weight: bold;
+        background-color: var(--color-primary-400);
+        padding: 10px 20px;
+        border-radius: 15px;
+    }
+</style>
+
 <body>
-    
+    <div id="board-container">
+        <table id="board">
+            <tbody></tbody>
+        </table>
+    </div>
+    <div id="score-container">
+        <h1>2626</h1>
+    </div>
+    <script>
+        function randBetween(min, max) {
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+
+        function populateBoard(tbody) {
+            for (let i = 0; i < 20; i++) {
+                let rowNode = tbody.insertRow();
+                for (let j = 0; j < 20; j++) {
+                    let cellNode = rowNode.insertCell();
+                    cellNode.textContent = "⬛"
+                }
+            }
+        }
+
+        function updateSnakeCoords(snakeCoords, direction, oldDirection) {
+            // console.log(direction, oldDirection)
+            let [headX, headY] = snakeCoords.at(-1);
+
+            switch (direction) {
+                case "ArrowUp":
+                    headY = Math.abs((headY - 1) % 19);
+                    break;
+                case "ArrowDown":
+                    headY = (headY + 1) % 19;
+                    break;
+                case "ArrowLeft":
+                    headX = Math.abs((headX - 1) % 19);
+                    break;
+                case "ArrowRight":
+                    headX = (headX + 1) % 19;
+                    break;
+                default:
+                    console.err(`Unknown direction: ${direction}`);
+            }
+
+            console.log(headX, headY)
+            snakeCoords.push([headX, headY]);
+
+            // Remove tail (returns the coords)
+            return snakeCoords.shift();
+        }
+
+        function updateDirection(direction, oldDirection) {
+            if (direction === "ArrowUp" && oldDirection === "ArrowDown" ||
+            direction === "ArrowDown" && oldDirection === "ArrowUp" ||
+            direction === "ArrowLeft" && oldDirection === "ArrowRight" ||
+            direction === "ArrowRight" && oldDirection === "ArrowLeft") {
+                console.log(direction, oldDirection)
+                return oldDirection;
+            }
+            return direction;
+        }
+
+        function drawSnake(tbody, snakeCoords, oldTail) {
+            // console.log(oldTail, oldTail[0], tbody.children[0])
+            tbody.children[oldTail[1]].children[oldTail[0]].textContent = "⬛";
+            for (let i = 0; i < snakeCoords.length - 1; i++) {
+                tbody.children[snakeCoords[i][1]].children[snakeCoords[i][0]].textContent = "⬜";
+            }
+            tbody.children[snakeCoords.at(-1)[1]].children[snakeCoords.at(-1)[0]].textContent = "🔳";
+        }
+
+        const tbody = document.getElementsByTagName("tbody")[0];
+        populateBoard(tbody);
+
+        let snakeCoords = [[9, 10], [10, 10]];
+        let input = "";
+        let gameState = "Ongoing";
+        let oldTailCoords = [9, 9];
+        let oldDirection = "";
+        let direction = "ArrowRight";
+
+        const intervalId = setInterval(() => {
+            drawSnake(tbody, snakeCoords, oldTailCoords);
+            oldTailCoords = updateSnakeCoords(snakeCoords, direction, oldDirection)
+            if (gameState === "Fail") {
+                clearInterval(intervalId);
+            }
+        }, 1000);
+
+        document.addEventListener('keydown', function (event) {
+            switch (event.key) {
+                case 'Escape':
+                    gameState = "Fail";
+                    break;
+                case "ArrowUp":
+                case "ArrowDown":
+                case "ArrowLeft":
+                case "ArrowRight":
+                    oldDirection = direction;
+                    direction = updateDirection(event.key, oldDirection);
+                    oldTailCoords = updateSnakeCoords(snakeCoords, direction, oldDirection);
+                    drawSnake(tbody, snakeCoords, oldTailCoords);
+
+                    break;
+                default:
+                    // For other keys
+                    break;
+            }
+            ;
+        });
+    </script>
 </body>
+
 </html>

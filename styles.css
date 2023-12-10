@@ -1,0 +1,68 @@
+:root {
+    /** CSS DARK THEME PRIMARY COLORS */
+    --color-primary-100: #2bf02e;
+    --color-primary-200: #5af34e;
+    --color-primary-300: #78f568;
+    --color-primary-400: #90f77f;
+    --color-primary-500: #a5f995;
+    --color-primary-600: #b9fbab;
+
+    /** CSS DARK THEME MIXED SURFACE COLORS */
+    --color-surface-mixed-100: #1a2518;
+    --color-surface-mixed-200: #2f3a2d;
+    --color-surface-mixed-300: #464f44;
+    --color-surface-mixed-400: #5e665c;
+    --color-surface-mixed-500: #767e75;
+    --color-surface-mixed-600: #90968f;
+
+    --board-font-size: 20px;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    color: white;
+}
+
+body {
+    background-color: var(--color-surface-mixed-100);
+}
+
+#board-container {
+    display: flex;
+    justify-content: center;
+    padding: 50px 20px 40px;
+}
+
+#board {
+    min-width: 100%;
+    min-height: 200px;
+    height: 100%;
+    font-size: var(--board-font-size);
+    letter-spacing: 3px;
+    line-height: calc(var(--board-font-size) + 3px);
+}
+
+#score-card-container {
+    display: flex;
+    justify-content: center;
+}
+
+#score-card {
+    display: flex;
+    background-color: var(--color-primary-400);
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 30px;
+    border-radius: 15px;
+    min-width: 140px;
+    text-align: center;
+    align-items: center;
+}
+
+#score-card>p{
+    font-size: 26px;
+    font-weight: bold;
+    color: var(--color-surface-mixed-300);
+    text-transform: uppercase;
+}

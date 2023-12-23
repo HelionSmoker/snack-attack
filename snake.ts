@@ -1,55 +1,214 @@
-class Apple {
-	row: number;
-	column: number;
+class Board {
+	readonly size: number;
+	private readonly boardNode: HTMLElement;
+	private readonly snakeHeadNode: HTMLElement;
+	private readonly collectibleNode: HTMLElement;
 
-	constructor(row: number, column: number) {
-		this.row = row;
-		this.column = column;
+	constructor(size: number) {
+		this.size = size;
+
+		const oldBoardNode = document.getElementById("board");
+		oldBoardNode.parentElement.removeChild(oldBoardNode);
+
+		this.boardNode = document.createElement("div");
+		this.boardNode.id = "board";
+
+		const boardContainer = document.getElementById("board-container");
+		boardContainer.appendChild(this.boardNode);
+
+		this.snakeHeadNode = new ImageCell("snake-head.png", ["rotate-east"]).getNode();
+		this.collectibleNode = new ImageCell("apple.png").getNode();
+
+		this.populateWithCells(size ** 2 - 2); // subtract snake head and collectible
+		this.boardNode.appendChild(this.snakeHeadNode);
+		this.boardNode.appendChild(this.collectibleNode);
 	}
 
-	getPosition() {
-		return { row: this.row, column: this.column };
+	private populateWithCells(cellCount: number) {
+		this.boardNode.style.gridTemplateColumns = `repeat(${this.size}, 1fr)`;
+		const fragment = document.createDocumentFragment();
+
+		for (let i = 0; i < cellCount; i++) {
+			fragment.appendChild(new PatternCell().getNode());
+		}
+
+		this.boardNode.appendChild(fragment);
 	}
 
-	moveToRandomPosition(snake: number[][], board: Board) {
-		const limit = board.width * board.height * 10; // So it doesn't go on forever
-		let i = 0;
-
-		// Prevent the apple from appearing within the snake
-		do {
-			this.row = randBetween(0, board.width - 1);
-			this.column = randBetween(0, board.height - 1);
-			i++;
-			if (i > limit) {
-				throw new DOMException("Could not find a suitable place for the apple");
-			}
-		} while (getIndexOfSubarray([this.row, this.column], snake) >= 0);
+	render(snake: Snake, apple: Collectible) {
+		console.log('yo')
+		// Render apple first so it doesn't override the snake when eaten
+		// result[apple.row][apple.column] = "🍎";
+		// snake.body.forEach((coord) => (result[coord[0]][coord[1]] = "🟩"));
 	}
 }
 
-class Board {
-	width: number;
-	height: number;
-	content: string[][];
-	containerNode: HTMLElement | null;
+class Cell {
+	protected readonly node: HTMLElement;
 
-	constructor(width: number, height: number, id: string) {
-		this.width = width;
-		this.height = height;
-		this.content = Array(height).fill(Array(width).fill("⬛"));
-		this.containerNode = document.getElementById(id);
+	constructor() {
+		this.node = document.createElement("div");
+		this.node.classList.add("cell-container");
 	}
 
-	render(snake: number[][], apple: Apple) {
-		let result = Array.from({ length: this.height }, () => Array(this.width).fill("⬛"));
+	getNode(): HTMLElement {
+		return this.node;
+	}
+}
 
-		// Render apple first so it doesn't override the snake when eaten
-		result[apple.row][apple.column] = "🍎";
-		snake.forEach((coord) => (result[coord[0]][coord[1]] = "🟩"));
+class PatternCell extends Cell {
+	constructor() {
+		super();
 
-		if (this.containerNode !== null) {
-			this.containerNode.textContent = result.map((row) => row.join("")).join("\n");
+		for (let i = 0; i < 9; i++) {
+			const subPattern = document.createElement("div");
+			this.node.appendChild(subPattern);
 		}
+	}
+
+	private getPattern(direction: string): number[] {
+		switch (direction) {
+			case "ns":
+				return [0, 1, 0, 0, 1, 0, 0, 1, 0];
+			case "we":
+				return [0, 0, 0, 1, 1, 1, 0, 0, 0];
+			case "ne":
+				return [0, 1, 0, 0, 1, 1, 0, 0, 0];
+			case "nw":
+				return [0, 1, 0, 1, 1, 0, 0, 0, 0];
+			case "se":
+				return [0, 0, 0, 0, 1, 1, 0, 1, 0];
+			case "sw":
+				return [0, 0, 0, 1, 1, 0, 0, 1, 0];
+			default:
+				throw new Error(`Unknown direction: ${direction}`);
+		}
+	}
+
+	updatePattern(direction: string) {
+		const children = this.node.children;
+		this.getPattern(direction).forEach((subPattern, i) => {
+			if (subPattern === 0) {
+				children[i].classList.remove("active-pattern");
+			} else {
+				children[i].classList.add("active-pattern");
+			}
+		})
+	}
+}
+
+class ImageCell extends Cell {
+	constructor(src: string, classes: string[] = []) {
+		super();
+
+		const image = document.createElement("img");
+		image.src = src;
+		if (classes.length > 0) {
+			image.classList.add(...classes);
+		}
+
+		this.node.appendChild(image);
+	}
+}
+
+class Collectible {
+	readonly position: number;
+	readonly type: string;
+
+	constructor(snake: Snake, board: Board) {
+		const limit = board.size ** 2 * 10; // Avoid infinite loops
+		let i = 0;
+
+		// Prevent the collectible from appearing within the snake
+		do {
+			this.position = randBetween(0, board.size ** 2 - 1);
+			i++;
+			if (i > limit) {
+				throw new DOMException("Could not find a suitable place for the collectible");
+			}
+		} while (snake.body.indexOf(this.position) !== -1);
+
+		this.type = "apple";
+	}
+}
+
+class Snake {
+	body: number[];
+	head: number;
+
+	constructor(board: Board) {
+		this.body = [Math.floor(board.size ** 2 / 2)];
+		this.head = this.body[this.body.length - 1];
+	}
+
+	calcNewHead(board: Board, direction: string): number {
+		// TODO: update values
+		switch (direction) {
+			case "ArrowUp":
+				return this.head - board.size < 0
+					? board.size ** 2 - board.size + this.head
+					: this.head - board.size;
+			case "ArrowDown":
+				return this.head + board.size;
+			case "ArrowLeft":
+				return this.head - 1;
+			case "ArrowRight":
+				return this.head + 1;
+		}
+		return;
+	}
+
+	updateSnake(direction: string, isAppleEaten: boolean, board: Board) {
+		const newHead = this.calcNewHead(board, direction);
+		this.body.push(newHead);
+		if (!isAppleEaten) this.body.shift();
+	}
+
+	checkCollidedWithItself() {
+		return this.body.indexOf(this.head) < this.body.length - 1;
+	}
+
+	checkCollidedWithBorder(direction: string, board: Board) {
+		const result = this.body[this.body.length - 1];
+		switch (direction) {
+			case "ArrowUp":
+				return result[0] === 0;
+			case "ArrowDown":
+				return result[0] === board.size - 1;
+			case "ArrowLeft":
+				return this.head === 0;
+			case "ArrowRight":
+				return this.head === board.size - 1;
+		}
+		return false;
+	}
+
+	checkCollision(allowWarping: boolean, direction: string, board: Board): boolean {
+		return (
+			this.checkCollidedWithItself() ||
+			(!allowWarping && this.checkCollidedWithBorder(direction, board))
+		);
+	}
+}
+
+class GameState {
+	readonly board: Board;
+	collectible: Collectible;
+	snake: Snake;
+	direction: string;
+	isGameOver: boolean;
+	isPaused: boolean;
+	score: Number;
+
+	constructor() {
+		this.board = new Board(21);
+		this.snake = new Snake(this.board);
+
+		this.collectible = new Collectible(this.snake, this.board);
+		this.direction = "";
+		this.isGameOver = false;
+		this.isPaused = true;
+		this.score = 0;
 	}
 }
 
@@ -65,128 +224,46 @@ function getIndexOfSubarray(subArray: number[], array: number[][]): number {
 	return array.findIndex((arr) => arraysEqual(arr, subArray));
 }
 
-function calcNewHead(snake: number[][], board: Board, direction: string): number[] {
-	let result = [...snake[snake.length - 1]]; // Create deep copy
-
-	switch (direction) {
-		case "ArrowUp":
-			result[0] = (result[0] - 1 + board.height) % board.height;
-			break;
-		case "ArrowDown":
-			result[0] = (result[0] + 1) % board.height;
-			break;
-		case "ArrowLeft":
-			result[1] = (result[1] - 1 + board.width) % board.width;
-			break;
-		case "ArrowRight":
-			result[1] = (result[1] + 1) % board.width;
-			break;
-		default:
-			return;
-	}
-	return result;
-}
-
-function updateSnake(snake: number[][], direction: string, isAppleEaten: boolean, board: Board) {
-	const newHead = calcNewHead(snake, board, direction);
-	snake.push(newHead);
-	if (!isAppleEaten) snake.shift();
-}
-
-function checkCollidedWithItself(snake: number[][]) {
-	const matchIndex = getIndexOfSubarray(snake[snake.length - 1], snake);
-	return matchIndex < snake.length - 1;
-}
-
-function checkCollidedWithBorder(snake: number[][], direction: string, board: Board) {
-	const result = snake[snake.length - 1];
-	switch (direction) {
-		case "ArrowUp":
-			return result[0] === 0;
-		case "ArrowDown":
-			return result[0] === board.height - 1;
-		case "ArrowLeft":
-			return result[1] === 0;
-		case "ArrowRight":
-			return result[1] === board.width - 1;
-	}
-	return false;
-}
-
-function checkCollision(
-	snake: number[][],
-	allowWarping: boolean,
-	direction: string,
-	board: Board,
-): boolean {
-	return (
-		checkCollidedWithItself(snake) ||
-		(!allowWarping && checkCollidedWithBorder(snake, direction, board))
-	);
-}
-
-function newGame() {
-	let board = new Board(21, 21, "board");
-	let snake = [[Math.floor(board.width / 2), Math.floor(board.height / 2)]];
-
-	let apple = new Apple(-1, -1);
-	apple.moveToRandomPosition(snake, board);
-
-	return {
-		board: board,
-		snake: snake,
-		apple: apple,
-		direction: "",
-		isGameOver: false,
-		isPaused: true,
-		score: 0,
-	};
-}
-
-let gameState = newGame();
+let gameState = new GameState();
 let previousDirection = "";
 
-function updateFrame(gameState) {
+function updateFrame(gameState: GameState) {
 	if (gameState.isGameOver || gameState.isPaused) {
 		clearInterval(gameLoop);
 		return;
 	}
 
-	const isAppleEaten = arraysEqual(gameState.snake[gameState.snake.length - 1], [
-		gameState.apple.row,
-		gameState.apple.column,
-	]);
+	const isAppleEaten = gameState.snake.head === gameState.collectible.position;
 
 	if (isAppleEaten) {
-		gameState.apple.moveToRandomPosition(gameState.snake, gameState.board) === 1;
-		gameState.score++;
+		gameState.collectible = new Collectible(gameState.snake, gameState.board);
+		// gameState.updateScore("apple");
 		const scoreNode = document.getElementById("score");
-		scoreNode.textContent = gameState.score;
+		scoreNode.textContent = gameState.score.toString();
 	}
 
-	if (checkCollision(gameState.snake, false, gameState.direction, gameState.board)) {
-		gameState.isGameOver = true;
-		return;
-	}
+	// if (gameState.snake.checkCollision(false, gameState.direction, gameState.board)) {
+	// 	gameState.isGameOver = true;
+	// 	return;
+	// }
 
-	if (
-		gameState.snake.length > 1 &&
-		((previousDirection === "ArrowUp" && gameState.direction === "ArrowDown") ||
-			(previousDirection === "ArrowDown" && gameState.direction === "ArrowUp") ||
-			(previousDirection === "ArrowLeft" && gameState.direction === "ArrowRight") ||
-			(previousDirection === "ArrowRight" && gameState.direction === "ArrowLeft"))
-	) {
-		gameState.direction = previousDirection;
-	}
+	// if (
+	// 	gameState.snake.body.length > 1 &&
+	// 	((previousDirection === "ArrowUp" && gameState.direction === "ArrowDown") ||
+	// 		(previousDirection === "ArrowDown" && gameState.direction === "ArrowUp") ||
+	// 		(previousDirection === "ArrowLeft" && gameState.direction === "ArrowRight") ||
+	// 		(previousDirection === "ArrowRight" && gameState.direction === "ArrowLeft"))
+	// ) {
+	// 	gameState.direction = previousDirection;
+	// }
 
-	updateSnake(gameState.snake, gameState.direction, isAppleEaten, gameState.board);
+	gameState.snake.updateSnake(gameState.direction, isAppleEaten, gameState.board);
 
-	gameState.board.render(gameState.snake, gameState.apple);
+	gameState.board.render(gameState.snake, gameState.collectible);
 }
 
 const frameInterval = 120; // milliseconds
 let gameLoop: number;
-gameState.board.render(gameState.snake, gameState.apple);
 
 function startGameLoop() {
 	gameLoop = setInterval(() => updateFrame(gameState), frameInterval);
@@ -198,7 +275,8 @@ document.addEventListener("keydown", function (event) {
 		case "ArrowDown":
 		case "ArrowLeft":
 		case "ArrowRight":
-			previousDirection = gameState.direction;
+			console.log(event.key)
+			// previousDirection = gameState.direction;
 			gameState.direction = event.key;
 			if (gameState.isPaused) {
 				startGameLoop();
@@ -209,8 +287,8 @@ document.addEventListener("keydown", function (event) {
 			gameState.isPaused = true;
 			break;
 		case "Enter":
-			gameState = newGame();
-			gameState.board.render(gameState.snake, gameState.apple);
+			gameState = new GameState();
+			gameState.board.render(gameState.snake, gameState.collectible);
 			break;
 	}
 });

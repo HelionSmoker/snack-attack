@@ -15,7 +15,8 @@
     --color-surface-mixed-500: #767e75;
     --color-surface-mixed-600: #90968f;
 
-    --board-font-size: 20px;
+    --snake-color: #78b159;
+    --cell-background: #31373d;
 }
 
 * {
@@ -35,12 +36,64 @@ body {
 }
 
 #board {
-    min-width: 100%;
-    min-height: 200px;
-    height: 100%;
-    font-size: var(--board-font-size);
-    letter-spacing: 3px;
-    line-height: calc(var(--board-font-size) + 3px);
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 4px;
+}
+
+
+img {
+    width: 30px;
+    height: 30px;
+}
+
+/* .face-south {
+    transform: rotate(0deg);
+} */
+
+.rotate-east {
+    transform: rotate(270deg);
+}
+
+.rotate-west {
+    transform: rotate(90deg);
+}
+
+.rotate-north {
+    transform: rotate(180deg);
+}
+
+.cell-container {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    background-color: var(--cell-background);
+    
+    min-height: 30px;
+    min-width: 30px;
+    
+    max-width: 30px;
+    max-height: 30px;
+}
+
+
+.active-pattern {
+    background-color: var(--snake-color);
+}
+
+.border-nw {
+    border-radius: 0 0 6px 0;
+}
+
+.border-ne {
+    border-radius: 0 0 0 6px;
+}
+
+.border-sw {
+    border-radius: 0 6px 0 0;
+}
+
+.border-se {
+    border-radius: 6px 0 0 0;
 }
 
 #score-card-container {
@@ -56,11 +109,12 @@ body {
     padding: 10px 30px;
     border-radius: 15px;
     min-width: 140px;
+
     text-align: center;
     align-items: center;
 }
 
-#score-card>p{
+#score-card>p {
     font-size: 26px;
     font-weight: bold;
     color: var(--color-surface-mixed-300);
